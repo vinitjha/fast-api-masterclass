@@ -1,6 +1,5 @@
-def main():
-    print("Hello from rent-a-room!")
-
-
-if __name__ == "__main__":
-    main()
+from fastapi import FastAPI
+app = FastAPI()
+@app.get("/")
+def root():
+   return {"message": "Welcome to Rent a rooms"}
