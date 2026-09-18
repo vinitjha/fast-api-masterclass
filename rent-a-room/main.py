@@ -1,4 +1,5 @@
 from fastapi import FastAPI,HTTPException, status
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
    title="Rent a Room API",
@@ -6,6 +7,7 @@ app = FastAPI(
    version ="1.0.0",
    contact ={"name": "test Enterprise LTD","email": "test@example.com"}
 )
+app.mount("/assets",StaticFiles(directory="assets"),name="assets")
 apartment = {
       "id": 1,
       "name": "Sunny 2-bedroom apartment",
