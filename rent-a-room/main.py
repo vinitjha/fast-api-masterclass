@@ -39,10 +39,10 @@ def root():
 @app.get("/rooms",status_code=status.HTTP_200_OK)
 def get_rooms():
    return [apartment,house,studio]
-@app.get("/rooms/{room_id}",status_code=status.HTTP_200_OK)
 @app.get("/rooms/faq",status_code=status.HTTP_200_OK)
 def get_room_faq():
    return {"check_in": "From 3 PM","checkout": "Untill 11AM"} 
+@app.get("/rooms/{room_id}",status_code=status.HTTP_200_OK)
 def get_room(room_id: int):
    for room in [apartment,house,studio]:
       if room["id"]  == room_id:
