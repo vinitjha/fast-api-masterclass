@@ -7,6 +7,7 @@ app = FastAPI(
    version ="1.0.0",
    contact ={"name": "test Enterprise LTD","email": "test@example.com"}
 )
+
 app.mount("/assets",StaticFiles(directory="assets"),name="assets")
 apartment = {
       "id": 1,
@@ -29,6 +30,9 @@ studio =  {
       "bedrooms": 1,
       "bathrooms": 1
 }
+def do_something():
+   print("random stuff")
+   print("do something")
 @app.get("/",status_code=status.HTTP_200_OK)
 def root():
    return {"message": "Welcome to Rent a rooms"}
@@ -42,6 +46,7 @@ def get_room_faq():
 def get_room(room_id: int):
    for room in [apartment,house,studio]:
       if room["id"]  == room_id:
+         do_something()
          return room 
    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Room not found") 
 
