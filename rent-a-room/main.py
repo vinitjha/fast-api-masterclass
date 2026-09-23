@@ -68,7 +68,7 @@ def get_rooms(max_price: Annotated[int | None,Query(ge=10,le=10_000)] = None, se
     return results
 #Adding another end Point:
 @app.get("/rooms/mansions", status_code=status.HTTP_200_OK)
-def get_mansions(max_price: Annotated[int | None,Query(ge=10,le=10_000)] = None, search: Annotated[str | None,search_query_validation,search_humor_ban_validation] = None,):
+def get_mansions(max_price: Annotated[int | None,Query(ge=10,le=10_000)] = None, search: SearchQuery = None,):
     results = [apartment, house, studio]
 
     if max_price:
