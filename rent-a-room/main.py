@@ -1,5 +1,7 @@
-from fastapi import FastAPI,HTTPException, status
+from typing import Annotated
+from fastapi import FastAPI,HTTPException,Query, status
 from fastapi.staticfiles import StaticFiles
+from pydantic import AfterValidator
 
 app = FastAPI(
    title="Rent a Room API",
@@ -35,8 +37,12 @@ def root():
 # "" in room  -> true
 # "" in studio -> True
 # ""
+def fail_if_funny(search: str):
+   if "lol" in search:
+      raise ValueError("No funny business allowed")
+   return search
 @app.get("/rooms", status_code=status.HTTP_200_OK)
-def get_rooms(max_price: int | None = None, search: str | None = None):
+def get_rooms(max_price: Annotated[int | None,Query(ge=10,le=10_000)] = None, search: Annotated[str | None,Query(min_length=3,max_length=10,title="Search Term",description="Provide a keyword to look for within the room's title"),AfterValidator(fail_if_funny)] = None,):
     results = [apartment, house, studio]
 
     if max_price:
