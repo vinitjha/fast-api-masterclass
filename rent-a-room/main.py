@@ -30,19 +30,26 @@ studio =  {
       "bedrooms": 1,
       "bathrooms": 1
 }
-
+search_query_validation = Query(
+    min_length=3,
+    max_length=10,
+    title="Search Term",
+    description="Provide a keyword to look for within the room's title",
+   )
+def fail_if_funny(search: str):
+   if "lol" in search:
+      raise ValueError("No funny business allowed")
+   return search
+search_humor_ban_validation = AfterValidator(fail_if_funny)  
 @app.get("/",status_code=status.HTTP_200_OK)
 def root():
    return {"message": "Welcome to Rent a rooms"}
 # "" in room  -> true
 # "" in studio -> True
 # ""
-def fail_if_funny(search: str):
-   if "lol" in search:
-      raise ValueError("No funny business allowed")
-   return search
+
 @app.get("/rooms", status_code=status.HTTP_200_OK)
-def get_rooms(max_price: Annotated[int | None,Query(ge=10,le=10_000)] = None, search: Annotated[str | None,Query(min_length=3,max_length=10,title="Search Term",description="Provide a keyword to look for within the room's title"),AfterValidator(fail_if_funny)] = None,):
+def get_rooms(max_price: Annotated[int | None,Query(ge=10,le=10_000)] = None, search: Annotated[str | None,search_query_validation,search_humor_ban_validation] = None,):
     results = [apartment, house, studio]
 
     if max_price:
@@ -58,6 +65,27 @@ def get_rooms(max_price: Annotated[int | None,Query(ge=10,le=10_000)] = None, se
         ]
 
     return results
+#Adding another end Point:
+@app.get("/rooms/mansions", status_code=status.HTTP_200_OK)
+def get_mansions(max_price: Annotated[int | None,Query(ge=10,le=10_000)] = None, search: Annotated[str | None,search_query_validation,search_humor_ban_validation] = None,):
+    results = [apartment, house, studio]
+
+    if max_price:
+        results = [
+            room for room in results
+            if room["price_per_night"] <= max_price
+        ]
+
+    if search:
+        results = [
+            room for room in results
+            if search.lower() in room["name"].lower()
+        ]
+
+    return results
+
+
+# End of this end point
 @app.get("/rooms/{room_id}",status_code=status.HTTP_200_OK)
 def get_room(room_id: int):
    for room in [apartment,house,studio]:
