@@ -7,26 +7,24 @@ app = FastAPI(
    version ="1.0.0",
    contact ={"name": "test Enterprise LTD","email": "test@example.com"}
 )
-
-app.mount("/assets",StaticFiles(directory="assets"),name="assets")
 apartment = {
       "id": 1,
       "name": "Sunny 2-bedroom apartment",
-      "price_pernight": 200,
+      "price_per_night": 200,
       "bedrooms": 2,
       "bathrooms": 1.5
 }
 house = {
          "id": 2,
          "name": "cozy 1.5-bedroom apartment",
-         "price_pernight":350,
+         "price_per_night":350,
          "bedrooms": 1.5,
          "bathrooms": 1.5
 }
 studio =  {
       "id": 3,
       "name": "Sunny 2-bedroom apartment",
-      "price_pernight": 100,
+      "price_per_night": 100,
       "bedrooms": 1,
       "bathrooms": 1
 }
@@ -38,10 +36,13 @@ def root():
 # "" in studio -> True
 # ""
 @app.get("/rooms",status_code=status.HTTP_200_OK)
-def get_rooms(search: str):
-  collection = [apartment,house,studio]
-  return [room for room in collection if search.lower() in room["name"].lower()]
-
+def get_rooms(max_price: int | None= None, search: str| None = None):
+  results = [apartment,house,studio]
+  if max_price:
+     results = [room for room in results if room["price_per_night"]<=max_price]
+  if search:
+     results = [room for room in results if search.lower() in room["name"].lower()]
+     return results     
 @app.get("/rooms/{room_id}",status_code=status.HTTP_200_OK)
 def get_room(room_id: int):
    for room in [apartment,house,studio]:
