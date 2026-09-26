@@ -1,6 +1,12 @@
 from typing import Annotated
 from fastapi import FastAPI, HTTPException, Query, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StringConstraints,field_validator
+openapi_tags = [
+    {
+        "name": "rooms",
+        "description": "Operation with **rooms** {a 4-wall _space_ that can be slept in}",
+    },
+]
 
 
 # ---------------------------------------------------------
@@ -59,7 +65,7 @@ class RoomQueryParam(BaseModel):
         le=10_000
     )
 
-    search: str | None = Field(
+    search:Annotated [str | None,StringConstraints(to_lower=True)] = Field(
         default=None,
         min_length=3,
         max_length=10,
@@ -83,7 +89,7 @@ class RoomQueryParam(BaseModel):
 
 @app.get(
     "/",
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
 )
 def root():
 
@@ -98,7 +104,7 @@ def root():
 
 @app.get(
     "/rooms",
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,tags=["rooms"]
 )
 def get_rooms(
     params: Annotated[RoomQueryParam, Query()]
@@ -122,7 +128,7 @@ def get_rooms(
         results = [
             room
             for room in results
-            if params.search.lower() in room["name"].lower()
+            if params.search in room["name"].lower()
         ]
 
     return results
@@ -134,7 +140,7 @@ def get_rooms(
 
 @app.get(
     "/rooms/mansions",
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,tags=["rooms"]
 )
 def get_mansions(
     params: Annotated[RoomQueryParam, Query()]
@@ -158,7 +164,7 @@ def get_mansions(
         results = [
             room
             for room in results
-            if params.search.lower() in room["name"].lower()
+            if params.search in room["name"].lower()
         ]
 
     return results
@@ -170,7 +176,7 @@ def get_mansions(
 
 @app.get(
     "/rooms/{room_id}",
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,tags=["rooms"]
 )
 def get_room(room_id: int):
 
