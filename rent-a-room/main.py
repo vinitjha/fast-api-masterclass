@@ -1,191 +1,125 @@
 from typing import Annotated
-from fastapi import FastAPI, HTTPException, Query, status
-from pydantic import BaseModel, Field, StringConstraints,field_validator
+from fastapi import Cookie,FastAPI,HTTPException,Query,Response,status
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field, StringConstraints, field_validator
+
 openapi_tags = [
     {
         "name": "rooms",
-        "description": "Operation with **rooms** {a 4-wall _space_ that can be slept in}",
-    },
+        "description": "Operations with **rooms** (a 4-wall _space_ that can be slept in)",
+    }
 ]
-
-
-# ---------------------------------------------------------
-# FastAPI Application
-# ---------------------------------------------------------
 
 app = FastAPI(
     title="Rent a Room API",
-    description="Book a stay in house or Room",
+    description="Book a stay in a house or room",
     version="1.0.0",
-    contact={
-        "name": "Test Enterprise LTD",
-        "email": "test@example.com"
-    }
+    contact={"name": "Boris Enterprises LTD", "email": "boris@example.com"},
+    openapi_tags=openapi_tags,
 )
 
-
-# ---------------------------------------------------------
-# Room Data
-# ---------------------------------------------------------
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 apartment = {
     "id": 1,
     "name": "Sunny 2-bedroom apartment",
     "price_per_night": 200,
     "bedrooms": 2,
-    "bathrooms": 1.5
+    "bathrooms": 1.5,
 }
 
 house = {
     "id": 2,
-    "name": "Cozy 1.5-bedroom apartment",
+    "name": "Cozy 3-bedroom house",
     "price_per_night": 350,
-    "bedrooms": 1.5,
-    "bathrooms": 1.5
+    "bedrooms": 3,
+    "bathrooms": 2.5,
 }
 
 studio = {
     "id": 3,
-    "name": "Sunny 2-bedroom apartment",
-    "price_per_night": 100,
+    "name": "Modern studio near museum",
+    "price_per_night": 150,
     "bedrooms": 1,
-    "bathrooms": 1
+    "bathrooms": 1,
 }
 
 
-# ---------------------------------------------------------
-# Query Parameter Model
-# ---------------------------------------------------------
-
-class RoomQueryParam(BaseModel):
-
+class RoomQueryParams(BaseModel):
     max_price: int | None = Field(
-        default=None,
-        ge=10,
-        le=10_000
+        default=None, ge=10, le=10_000, examples=[100, 2000, 10_000]
     )
 
-    search:Annotated [str | None,StringConstraints(to_lower=True)] = Field(
+    search: Annotated[str | None, StringConstraints(to_lower=True)] = Field(
         default=None,
         min_length=3,
         max_length=10,
-        title="Search Term",
-        description="Provide a keyword to look for within the room's title"
+        title="Search term",
+        description="Provide a keyword to look for within the room's title",
+        examples=["sunny", "bedroom", "house"],
     )
 
     @field_validator("search")
     @classmethod
-    def fail_if_funny(cls, search: str | None):
-
-        if search and "lol" in search.lower():
+    def fail_if_funny(cls, search: str) -> str:
+        if "lol" in search:
             raise ValueError("No funny business allowed")
-
         return search
 
 
-# ---------------------------------------------------------
-# Root Endpoint
-# ---------------------------------------------------------
+@app.get("/", status_code=status.HTTP_200_OK)
+def root(language: Annotated[str | None,Cookie()]= None):
+    greetings = {
+        "en": "Welcome to Rent a Room",
+        "es": "Bienvenido Rent a Room",
+        "fr":  "Bienvenue  Room"
 
-@app.get(
-    "/",
-    status_code=status.HTTP_200_OK,
-)
-def root():
-
-    return {
-        "message": "Welcome to Rent a rooms"
     }
+    greetings= greetings.get(language or "en")
+    return {"message": greetings}
 
 
-# ---------------------------------------------------------
-# Get All Rooms / Filter Rooms
-# ---------------------------------------------------------
-
-@app.get(
-    "/rooms",
-    status_code=status.HTTP_200_OK,tags=["rooms"]
-)
-def get_rooms(
-    params: Annotated[RoomQueryParam, Query()]
-):
-
-    # Start with all rooms
+@app.get("/rooms", status_code=status.HTTP_200_OK, tags=["rooms"])
+def get_rooms(params: Annotated[RoomQueryParams, Query()]):
     results = [apartment, house, studio]
 
-    # Filter by maximum price
-    if params.max_price is not None:
-
+    if params.max_price:
         results = [
-            room
-            for room in results
-            if room["price_per_night"] <= params.max_price
+            room for room in results if room["price_per_night"] <= params.max_price
         ]
 
-    # Filter by search term
     if params.search:
-
-        results = [
-            room
-            for room in results
-            if params.search in room["name"].lower()
-        ]
+        results = [room for room in results if params.search in room["name"].lower()]
 
     return results
 
 
-# ---------------------------------------------------------
-# Get Mansions
-# ---------------------------------------------------------
-
-@app.get(
-    "/rooms/mansions",
-    status_code=status.HTTP_200_OK,tags=["rooms"]
-)
-def get_mansions(
-    params: Annotated[RoomQueryParam, Query()]
-):
-
-    # Currently house is considered as a mansion
+@app.get("/rooms/mansions", status_code=status.HTTP_200_OK, tags=["rooms"])
+def get_mansions(params: Annotated[RoomQueryParams, Query()]):
     results = [house]
 
-    # Filter by maximum price
-    if params.max_price is not None:
-
+    if params.max_price:
         results = [
-            room
-            for room in results
-            if room["price_per_night"] <= params.max_price
+            room for room in results if room["price_per_night"] <= params.max_price
         ]
 
-    # Filter by search term
     if params.search:
-
-        results = [
-            room
-            for room in results
-            if params.search in room["name"].lower()
-        ]
+        results = [room for room in results if params.search in room["name"].lower()]
 
     return results
 
 
-# ---------------------------------------------------------
-# Get Room By ID
-# ---------------------------------------------------------
-
-@app.get(
-    "/rooms/{room_id}",
-    status_code=status.HTTP_200_OK,tags=["rooms"]
-)
+@app.get("/rooms/{room_id}", status_code=status.HTTP_200_OK, tags=["rooms"])
 def get_room(room_id: int):
-
     for room in [apartment, house, studio]:
-
         if room["id"] == room_id:
             return room
 
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Room not found"
-    )
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+@app.get("/preferences",status_code=status.HTTP_200_OK,tags=["preferences"])
+def set_preferences(response:Response):
+      response.set_cookie(key="theme",value="dark")
+      response.set_cookie(key="language",value="es")
+      return{"message" :"Preference Updated"}
+
+
