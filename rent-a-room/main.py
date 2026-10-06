@@ -1,7 +1,9 @@
-from typing import Annotated
-from fastapi import Cookie,FastAPI,HTTPException,Query,Response,status
+from contextlib import asynccontextmanager
+from typing import Annotated,Literal
+from fastapi import Cookie,FastAPI,Header,HTTPException,Query,Response,status
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, StringConstraints, field_validator
+from database import create_db_and_tables
 
 openapi_tags = [
     {
@@ -9,8 +11,14 @@ openapi_tags = [
         "description": "Operations with **rooms** (a 4-wall _space_ that can be slept in)",
     }
 ]
-
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Additional operations before the server starts up
+    create_db_and_tables
+    yield
+    # Additional operations after the server starts up
 app = FastAPI(
+    lifespan=lifespan,
     title="Rent a Room API",
     description="Book a stay in a house or room",
     version="1.0.0",
@@ -44,6 +52,12 @@ studio = {
     "bathrooms": 1,
 }
 
+class AppCookies(BaseModel):
+    theme: Literal["light","dark"] = "dark"
+    language: Literal["en","es","fr"]= "en"
+
+class AppHeaders(BaseModel):
+    user_agent:str |None
 
 class RoomQueryParams(BaseModel):
     max_price: int | None = Field(
@@ -68,14 +82,16 @@ class RoomQueryParams(BaseModel):
 
 
 @app.get("/", status_code=status.HTTP_200_OK)
-def root(language: Annotated[str | None,Cookie()]= None):
+def root(
+          app_cookies: Annotated[Appcookies,Cookie],
+          app_headers: Annotated[AppHeaders,Header()]):
     greetings = {
         "en": "Welcome to Rent a Room",
         "es": "Bienvenido Rent a Room",
         "fr":  "Bienvenue  Room"
 
     }
-    greetings= greetings.get(language or "en")
+    greetings= greetings.get(app_cookies.language)
     return {"message": greetings}
 
 
@@ -118,8 +134,9 @@ def get_room(room_id: int):
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
 @app.get("/preferences",status_code=status.HTTP_200_OK,tags=["preferences"])
 def set_preferences(response:Response):
-      response.set_cookie(key="theme",value="dark")
-      response.set_cookie(key="language",value="es")
+      app_cookies = AppCookies()
+      response.set_cookie(key="theme",value=app_cookies.theme)
+      response.set_cookie(key="language",value=app_cookies.language)
       return{"message" :"Preference Updated"}
 
 
